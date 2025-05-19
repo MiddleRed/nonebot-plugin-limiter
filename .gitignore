@@ -185,3 +185,4 @@ bot.py
 
 # for local dev only
 bot_testing/
+__init__.py
