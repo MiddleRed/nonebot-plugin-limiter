@@ -124,7 +124,7 @@ def Cooldown(
             return
 
         reset_time = trigger.get_next_fire_time(usage.start_time, now)
-        print(now, usage.start_time, reset_time)
+
         assert reset_time is not None, "reset_time should not be None"
         if now >= reset_time:
             usage.start_time = now
