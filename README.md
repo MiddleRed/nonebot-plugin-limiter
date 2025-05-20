@@ -1,6 +1,6 @@
 # nonebot-plugin-cooldown
 
-提供一个简单易用的冷却（Cooldown）装饰器用于命令消息速率限制
+提供一个简单易用的冷却/限流规则用于命令消息速率限制，支持跨平台
 
 ## 安装
 
@@ -58,14 +58,13 @@
 ## 使用
 *TBA*
 
-## 配置
-可启用消息速率状态持久化，防止机器人重启丢失先前的用户速率数据
-```
-# .env
-COOLDOWN_ENABLE_PERSISTENCE = false
-```
-
-本插件的状态持久化使用 `nonebot_plugin_localstore` 存储于本地，如需更改缓存位置请参考[插件文档](https://github.com/nonebot/plugin-localstore?tab=readme-ov-file#%E9%85%8D%E7%BD%AE%E9%A1%B9)
+### Roadmap
+- [ ] 固定窗口
+- [ ] 滑动窗口
+- [ ] 漏桶
+- [ ] 令牌桶
+- [ ] 依赖注入
+- [ ] 本地持久化状态
 
 ## 鸣谢
 本插件部分代码参考了 [nonebot/adapter-onebot](https://github.com/nonebot/adapter-onebot) 的 `Cooldown` [实现](https://github.com/nonebot/adapter-onebot/blob/51294404cc8bf0b3d03008e09f34d3dd1a6acfd8/nonebot/adapters/onebot/v11/helpers.py#L224) ，在此表示感谢

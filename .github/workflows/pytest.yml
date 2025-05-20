@@ -1,13 +1,12 @@
 name: Pytest
 
 on:
-  ## Disabled
-  # push:
-  #   branches:
-  #     - 'master'
-  #   paths-ignore:
-  #     - 'README.md'
-  # pull_request:
+  # pypi workflow trigger
+  workflow_run:
+    workflows: [Publish]
+    types:
+      - completed
+
 
 jobs:
   pytest:
