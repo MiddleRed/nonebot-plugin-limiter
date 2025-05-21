@@ -1,6 +1,6 @@
-# nonebot-plugin-cooldown
+# nonebot-plugin-limiter
 
-提供一个简单易用的冷却/限流依赖用于命令消息速率限制，支持跨平台
+提供一个简单易用的冷却（Cooldown）和限流依赖用于命令消息速率限制，支持跨平台。
 
 ## 安装
 
@@ -8,13 +8,13 @@
 <summary>使用 nb-cli 安装</summary>
 在 nonebot2 项目的根目录下打开命令行, 输入以下指令即可安装
 
-    nb plugin install nonebot-plugin-cooldown --upgrade
+    nb plugin install nonebot-plugin-limiter --upgrade
 使用 **pypi** 源安装
 
-    nb plugin install nonebot-plugin-cooldown --upgrade -i "https://pypi.org/simple"
+    nb plugin install nonebot-plugin-limiter --upgrade -i "https://pypi.org/simple"
 使用**清华源**安装
 
-    nb plugin install nonebot-plugin-cooldown --upgrade -i "https://pypi.tuna.tsinghua.edu.cn/simple"
+    nb plugin install nonebot-plugin-limiter --upgrade -i "https://pypi.tuna.tsinghua.edu.cn/simple"
 
 
 </details>
@@ -26,32 +26,32 @@
 <details open>
 <summary>uv</summary>
 
-    uv add nonebot-plugin-cooldown
+    uv add nonebot-plugin-limiter
 安装仓库 master 分支
 
-    uv add git+https://github.com/MiddleRed/nonebot-plugin-cooldown@master
+    uv add git+https://github.com/MiddleRed/nonebot-plugin-limiter@master
 </details>
 
 <details>
 <summary>pdm</summary>
 
-    pdm add nonebot-plugin-cooldown
+    pdm add nonebot-plugin-limiter
 安装仓库 master 分支
 
-    pdm add git+https://github.com/{owner}/nonebot-plugin-cooldown@master
+    pdm add git+https://github.com/{owner}/nonebot-plugin-limiter@master
 </details>
 <details>
 <summary>poetry</summary>
 
-    poetry add nonebot-plugin-cooldown
+    poetry add nonebot-plugin-limiter
 安装仓库 master 分支
 
-    poetry add git+https://github.com/{owner}/nonebot-plugin-cooldown@master
+    poetry add git+https://github.com/{owner}/nonebot-plugin-limiter@master
 </details>
 
 打开 nonebot2 项目根目录下的 `pyproject.toml` 文件, 在 `[tool.nonebot]` 部分追加写入
 
-    plugins = ["nonebot-plugin-cooldown"]
+    plugins = ["nonebot-plugin-limiter"]
 
 </details>
 

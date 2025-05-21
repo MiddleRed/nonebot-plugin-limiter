@@ -64,7 +64,7 @@ def Cooldown(
     示例:
     ```python
     from nonebot.permission import SUPERUSER
-    from nonebot_plugin_cooldown.entity import UserScope
+    from nonebot_plugin_limiter.entity import UserScope
 
     @matcher.handle(parameterless=[
         Cooldown(
@@ -105,7 +105,7 @@ def Cooldown(
     else:
         cooldown_dict: dict[str, FixWindowUsage] = {}
 
-    async def _cooldown_dependency(
+    async def _limiter_dependency(
         bot: Bot,
         matcher: Matcher,
         event: Event,
@@ -136,4 +136,4 @@ def Cooldown(
         else:
             await matcher.finish(reject)
 
-    return Depends(_cooldown_dependency)
+    return Depends(_limiter_dependency)
