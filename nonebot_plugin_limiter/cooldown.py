@@ -7,9 +7,9 @@ from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot.adapters import Bot, Event, Message, MessageSegment, MessageTemplate
-from nonebot.internal.rule import Rule as Rule
 from nonebot.matcher import Matcher
 from nonebot.params import Depends
+from nonebot.rule import Rule as Rule
 from nonebot.typing import _DependentCallable
 from nonebot_plugin_alconna import UniMessage
 from tzlocal import get_localzone
@@ -236,7 +236,7 @@ def SlidingWindowCooldown(
         if entity_id == "__bypass":
             return
 
-        now = datetime.now(tz=get_localzone())
+        now = datetime.now(tz=_tz)
 
         if entity_id not in bucket:
             bucket[entity_id] = SlidingWindowUsage()
