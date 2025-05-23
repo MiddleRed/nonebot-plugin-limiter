@@ -60,7 +60,10 @@ class UserScope(CooldownEntity):
         注：whitelist 与 permission 不互斥，通过任意一个条件即不受限制
         """
 
-        self.whitelist = whitelist
+        if whitelist is not None:
+            self.whitelist = tuple(str(x) for x in whitelist)
+        else:
+            self.whitelist = None
         self.permission = permission
 
     async def get_entity_id(self, bot: Bot, event: Event) -> str:
@@ -94,7 +97,10 @@ class SceneScope(CooldownEntity):
         注：whitelist 与 permission 不互斥，通过任意一个条件即不受限制
         """
 
-        self.whitelist = whitelist
+        if whitelist is not None:
+            self.whitelist = tuple(str(x) for x in whitelist)
+        else:
+            self.whitelist = None
         self.permission = permission
 
     async def get_entity_id(self, bot: Bot, event: Event) -> str:
@@ -136,7 +142,10 @@ class UserSceneScope(CooldownEntity):
             - whitelist 与 permission 不互斥，通过任意一个条件即不受限制。
         """
 
-        self.whitelist = whitelist
+        if whitelist is not None:
+            self.whitelist = tuple((str(x[0]), str(x[1])) for x in whitelist)
+        else:
+            self.whitelist = None
         self.permission = permission
 
     async def get_entity_id(self, bot: Bot, event: Event) -> str:
@@ -175,7 +184,10 @@ class PrivateScope(CooldownEntity):
         注：whitelist 与 permission 不互斥，通过任意一个条件即不受限制
         """
 
-        self.whitelist = whitelist
+        if whitelist is not None:
+            self.whitelist = tuple(str(x) for x in whitelist)
+        else:
+            self.whitelist = None
         self.permission = permission
 
     async def get_entity_id(self, bot: Bot, event: Event) -> str:
@@ -211,7 +223,10 @@ class PublicScope(CooldownEntity):
         注：whitelist 与 permission 不互斥，通过任意一个条件即不受限制
         """
 
-        self.whitelist = whitelist
+        if whitelist is not None:
+            self.whitelist = tuple(str(x) for x in whitelist)
+        else:
+            self.whitelist = None
         self.permission = permission
 
     async def get_entity_id(self, bot: Bot, event: Event) -> str:
