@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Literal
 
 from nonebot.internal.adapter import Bot, Event
@@ -9,13 +10,15 @@ _IdType = str | int
 
 class CooldownEntity:
     """
-    **限制实体基类**
+    **限制实体类**
     """
 
     __slots__ = ()
 
+    @abstractmethod
     def __init__(self) -> None: ...
 
+    @abstractmethod
     async def get_entity_id(self, bot: Bot, event: Event) -> str:
         """
         返回被限制实体的唯一标识符，统一为 str
@@ -29,6 +32,9 @@ class GlobalScope(CooldownEntity):
 
     限制所有用户在所有场景下的使用情况。
     """
+
+    def __init__(self) -> None:
+        pass
 
     async def get_entity_id(self, bot: Bot, event: Event) -> str:
         return "__global"
@@ -219,6 +225,3 @@ class PublicScope(CooldownEntity):
         if self.permission is not None and (await self.permission(bot, event)):
             return "__bypass"
         return f"u`{user_id}`"
-
-
-__all__ = ["GlobalScope", "PrivateScope", "PublicScope", "SceneScope", "UserSceneScope", "UserScope"]
