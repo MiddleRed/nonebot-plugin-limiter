@@ -58,7 +58,9 @@ def load_usage_data() -> None:
                 _SlidingWindowCooldownDict[name] = {}
             bucket = _SlidingWindowCooldownDict[name]
             for _id, usage in usage_set.items():
-                bucket[_id] = SlidingWindowUsage(timestamps=deque(datetime.fromtimestamp(t, tz=_tz) for t in usage.timestamps))
+                bucket[_id] = SlidingWindowUsage(
+                    timestamps=deque(datetime.fromtimestamp(t, tz=_tz) for t in usage.timestamps)
+                )
 
     logger.info("Loaded previous usage data.")
 

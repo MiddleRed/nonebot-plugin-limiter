@@ -122,7 +122,7 @@ async def _():
 多命令共享使用统计集合。  
 注：请确保使用相同使用统计集合的限制器限流参数一致（限制对象，限制时间，最大使用量），否则可能会有预期之外的行为。
 ```python
-# 注意，不同限流算法下的使用情况集合无法共享
+# 注意，不同限流算法下的使用统计集合无法共享
 cmd1 = on_startswith("cmd1")
 @cmd1.handle(parameterless=[
     Cooldown(UserScope(), 100, limit = 2, reject="reject1", name="share_set")
