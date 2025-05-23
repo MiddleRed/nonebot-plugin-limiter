@@ -3,6 +3,7 @@ from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_uninfo")
 require("nonebot_plugin_alconna")
+require("nonebot_plugin_localstore")
 require("nonebot_plugin_apscheduler")
 from .config import Config
 
@@ -11,7 +12,7 @@ __plugin_meta__ = PluginMetadata(
     description="通用命令冷却限制器",
     usage="",
     type="library",
-    homepage="https://github.com/MiddleRed/nonebot-plugin-cooldown",
+    homepage="https://github.com/MiddleRed/nonebot-plugin-limiter",
     config=Config,
     supported_adapters=inherit_supported_adapters("nonebot_plugin_alconna", "nonebot_plugin_uninfo"),
     extra={"author": "MiddleRed <middlered@outlook.com>"},
@@ -26,3 +27,5 @@ from .entity import PublicScope as PublicScope
 from .entity import SceneScope as SceneScope
 from .entity import UserSceneScope as UserSceneScope
 from .entity import UserScope as UserScope
+from .persist import load_usage_data as load_usage_data
+from .persist import save_usage_data as save_usage_data

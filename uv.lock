@@ -465,7 +465,7 @@ wheels = [
 ]
 
 [[package]]
-name = "nonebot-plugin-cooldown"
+name = "nonebot-plugin-limiter"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

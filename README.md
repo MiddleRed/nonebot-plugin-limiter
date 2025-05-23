@@ -63,13 +63,23 @@ from nonebot_plugin_limiter import (
     GlobalScope, UserScope, SceneScope, UserSceneScope, PrivateScope, PublicScope
 )
 ```
+配置项
+```bash
+COOLDOWN_ENABLE_PERSISTENCE = false # 开启持久化
+COOLDOWN_SAVE_INTERVAL = 60 # 开启持久化后保存时间，单位为秒
+```
+修改持久化本地存储目录请参考 localstore [插件配置方法](https://github.com/nonebot/plugin-localstore?tab=readme-ov-file#%E9%85%8D%E7%BD%AE%E9%A1%B9) 更改 `LOCALSTORE_PLUGIN_DATA_DIR`
 
 ## 快速上手
 
 基本使用方式
 ```python
+from nonebot import require
+from nonebot_plugin_uninfo import Uninfo
 from nonebot.permission import SUPERUSER
-from nonebot_plugin_limiter import UserScope
+
+require("nonebot_plugin_limiter")
+from nonebot_plugin_limiter import UserScope, Cooldown
 
 matcher = on()
 @matcher.handle(parameterless=[
@@ -93,7 +103,7 @@ from datetime import timedelta # 支持传入 timedelta
 
 # 同步样例。获取限制对象的唯一 ID
 def get_entity_id(bot: Bot, event: Event): # 可依赖注入
-    if any_condition:
+    if <any_condition>:
         return "__bypass"   # 返回 `__bypass` 限制器将不会约束该对象的使用量
     return event.get_user_id()
 
@@ -139,7 +149,7 @@ dailysign = on_startswith("签到")
     ),
 ])
 async def _():
-    await dailysign.finish("签到成功!")
+    await dailysign.finish("签到成功！")
 ```
 
 ### Feature
@@ -147,8 +157,8 @@ async def _():
 - [x] 滑动窗口
 - [ ] 漏桶
 - [ ] 令牌桶
-- [ ] reject handler 依赖注入
-- [ ] 本地持久化状态
+- [ ] reject 依赖注入
+- [x] 本地持久化状态
 
 ## 鸣谢
 本插件部分代码参考了 [nonebot/adapter-onebot](https://github.com/nonebot/adapter-onebot) 的 `Cooldown` [实现](https://github.com/nonebot/adapter-onebot/blob/51294404cc8bf0b3d03008e09f34d3dd1a6acfd8/nonebot/adapters/onebot/v11/helpers.py#L224) ，在此表示感谢

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Literal
 
-from nonebot.internal.adapter import Bot, Event
+from nonebot.adapters import Bot, Event
 from nonebot.permission import Permission
 from nonebot_plugin_uninfo import get_session
 
