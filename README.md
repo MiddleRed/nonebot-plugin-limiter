@@ -1,4 +1,5 @@
 # nonebot-plugin-limiter
+[![PyPI](https://img.shields.io/pypi/v/nonebot-plugin-limiter?logo=python&logoColor=edb641)](https://pypi.org/project/nonebot-plugin-limiter/) [![Python Version](https://img.shields.io/badge/python->=3.10-blue?logo=python&logoColor=edb641)]()
 
 提供一个简单易用的冷却（Cooldown）和限流的依赖项用于命令消息速率限制，支持跨平台。
 
@@ -38,7 +39,7 @@
     pdm add nonebot-plugin-limiter
 安装仓库 master 分支
 
-    pdm add git+https://github.com/{owner}/nonebot-plugin-limiter@master
+    pdm add git+https://github.com/MiddleRed/nonebot-plugin-limiter@master
 </details>
 <details>
 <summary>poetry</summary>
@@ -46,7 +47,7 @@
     poetry add nonebot-plugin-limiter
 安装仓库 master 分支
 
-    poetry add git+https://github.com/{owner}/nonebot-plugin-limiter@master
+    poetry add git+https://github.com/MiddleRed/nonebot-plugin-limiter@master
 </details>
 
 打开 nonebot2 项目根目录下的 `pyproject.toml` 文件, 在 `[tool.nonebot]` 部分追加写入
