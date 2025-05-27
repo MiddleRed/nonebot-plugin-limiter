@@ -32,12 +32,12 @@ test = [
 ]
 
 [tool.nonebot]
-plugin-dirs = ["src"]
+plugins = ["nonebot_plugin_limiter"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
-pythonpath = ["src"]
+pythonpath = ["nonebot_plugin_limiter"]
 addopts = [
   "-v",               # 详细输出
   "-s",               # 显示打印信息
