@@ -475,6 +475,7 @@ dependencies = [
     { name = "nonebot-plugin-localstore" },
     { name = "nonebot-plugin-uninfo" },
     { name = "nonebot2" },
+    { name = "tzlocal" },
 ]
 
 [package.dev-dependencies]
@@ -498,6 +499,7 @@ requires-dist = [
     { name = "nonebot-plugin-localstore", specifier = ">=0.7.4,<1.0.0" },
     { name = "nonebot-plugin-uninfo", specifier = ">=0.7.3,<1.0.0" },
     { name = "nonebot2", specifier = ">=2.4.2,<3.0.0" },
+    { name = "tzlocal", specifier = ">=3.0" },
 ]
 
 [package.metadata.requires-dev]
