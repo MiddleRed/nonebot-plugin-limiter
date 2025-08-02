@@ -138,6 +138,22 @@ cmd2 = on_startswith("cmd2")
 async def _(): ...
 ```
 
+手动管理限制器使用记录的增加操作，适用于没有成功完成事件处理时避免给用户添加限制。
+```python
+from nonebot_plugin_limiter import Increaser
+
+cmd = on_startswith("cmd")
+@cmd.handle(parameterless=[
+    Cooldown(UserScope(), 100, limit = 2, set_increaser = True)
+])
+async def _(increaser: Increaser):
+    if <not_meet_condition>:
+        await cmd.finish("Run failed")
+    else:
+        increaser.execute() # 这会给该实体添加一条使用记录
+        await cmd.finish("Run successed")
+```
+
 使用固定窗口策略实现每日签到
 ```python
 dailysign = on_startswith("签到")

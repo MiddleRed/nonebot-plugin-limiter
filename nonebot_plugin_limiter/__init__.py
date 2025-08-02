@@ -28,5 +28,6 @@ from .entity import PublicScope as PublicScope
 from .entity import SceneScope as SceneScope
 from .entity import UserSceneScope as UserSceneScope
 from .entity import UserScope as UserScope
+from .handler import Increaser as Increaser
 from .persist import load_usage_data as load_usage_data
 from .persist import save_usage_data as save_usage_data

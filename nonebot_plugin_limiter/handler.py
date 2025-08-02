@@ -1,5 +1,21 @@
-from nonebot.params import Depends
-from nonebot.typing import T_State, _DependentCallable
+from collections.abc import Callable
+from typing import Annotated
 
-class Limiter:
-    pass
+from nonebot.params import Depends
+from nonebot.typing import T_State
+
+
+class _FuncWrapper:
+    def __init__(self, func: Callable) -> None:
+        self._func = func
+
+    def execute(self):
+        self._func()
+
+def get_increaser(state: T_State):
+    ret = state.get("plugin_limiter:increaser")
+    if ret is None:
+        raise KeyError("Cannot get increaser, make sure you have enabled `set_increaser` in cooldown policy.")
+    return _FuncWrapper(ret)
+
+Increaser = Annotated[_FuncWrapper, Depends(get_increaser)]

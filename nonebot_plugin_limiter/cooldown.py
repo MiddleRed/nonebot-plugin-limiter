@@ -10,7 +10,7 @@ from nonebot.adapters import Bot, Event, Message, MessageSegment, MessageTemplat
 from nonebot.matcher import Matcher
 from nonebot.params import Depends
 from nonebot.rule import Rule as Rule
-from nonebot.typing import _DependentCallable
+from nonebot.typing import T_State, _DependentCallable
 from nonebot_plugin_alconna import UniMessage
 from tzlocal import get_localzone
 
@@ -33,6 +33,7 @@ def _limit_dep_wrapper(limit: int | _DependentCallable[int]) -> _DependentCallab
         limit_dep = limit
     return limit_dep
 
+# region: FixWindow
 @dataclass
 class FixWindowUsage:
     start_time: datetime
@@ -48,6 +49,7 @@ def Cooldown(
     *,
     limit: int | _DependentCallable[int] = 5,
     reject: None | str | Message | MessageSegment | MessageTemplate | UniMessage = None,
+    set_increaser: bool = False,
     name: None | str = None,
 ):
     """
@@ -120,6 +122,7 @@ def Cooldown(
         bot: Bot,
         matcher: Matcher,
         event: Event,
+        state: T_State,
         entity_id: str = Depends(entity_id_dep),
         limit: int = Depends(limit_dep),
     ) -> None:
@@ -138,13 +141,20 @@ def Cooldown(
 
         # Calculate reset time based on when the limitation was set
         reset_time = trigger.get_next_fire_time(usage.start_time, now)
-
         assert reset_time is not None, "reset_time should not be None"
-        if now >= reset_time:
+
+        def _increase_action():
             usage.start_time = now
             usage.available = limit - 1
-            return
 
+        if now >= reset_time:
+            if set_increaser:
+                state["plugin_limiter:increaser"] = _increase_action
+            else:
+                _increase_action()
+            return  # Didn't exceed
+
+        # Exceed
         if isinstance(reject, UniMessage):
             await reject.finish(event, bot)
         else:
@@ -152,7 +162,9 @@ def Cooldown(
 
     return Depends(_limiter_dependency)
 
+# endregin
 
+# region: SlidingWindow
 @dataclass
 class SlidingWindowUsage:
     timestamps: deque[datetime] = field(default_factory=deque)
@@ -167,6 +179,7 @@ def SlidingWindowCooldown(
     *,
     limit: int | _DependentCallable[int] = 5,
     reject: None | str | Message | MessageSegment | MessageTemplate | UniMessage = None,
+    set_increaser: bool = False,
     name: None | str = None,
 ):
     """
@@ -190,6 +203,10 @@ def SlidingWindowCooldown(
         reject (None | str | Message | MessageSegment | MessageTemplate | UniMessage):
             可选，当超出限制时的响应行为。默认为 `None`。
             - 若为 `str` 或消息对象，将作为限制使用时的提示消息发送给用户。
+
+        set_increaser (bool):
+            可选，是否获取限制器的增加器。默认为 False。
+            - 当启用该选项时，限制器默认的自增将会关闭，需要在事件处理时依赖获取 Increaser 并手动操作增加。
 
         name (None | str):
             可选，设置当前限制器的使用统计集合。默认为 `None` ，即私有集合。
@@ -230,6 +247,7 @@ def SlidingWindowCooldown(
         bot: Bot,
         matcher: Matcher,
         event: Event,
+        state: T_State,
         entity_id: str = Depends(entity_id_dep),
         limit: int = Depends(limit_dep),
     ) -> None:
@@ -246,13 +264,22 @@ def SlidingWindowCooldown(
         while usage.timestamps and (now - usage.timestamps[0]).total_seconds() >= window_length:
             usage.timestamps.popleft()
 
-        if len(usage.timestamps) < limit:
+        def _increase_action():
             usage.timestamps.append(now)
-            return
 
+        if len(usage.timestamps) < limit:
+            if set_increaser:
+                state["plugin_limiter:increaser"] = _increase_action
+            else:
+                _increase_action()
+            return  # Didn't exceed
+
+        # Exceeded
         if isinstance(reject, UniMessage):
             await reject.finish(event, bot)
         else:
             await matcher.finish(reject)
 
     return Depends(_limiter_dependency)
+
+# endregin
