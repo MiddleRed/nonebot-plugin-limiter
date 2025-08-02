@@ -101,11 +101,12 @@ async def handler(): ...
 自定义限制对象、定制最大使用量。
 ```python
 from datetime import timedelta # 支持传入 timedelta
+from nonebot_plugin_limiter import BYPASS_ENTITY
 
 # 同步样例。获取限制对象的唯一 ID
 def get_entity_id(bot: Bot, event: Event): # 可依赖注入
     if <any_condition>:
-        return "__bypass"   # 返回 `__bypass` 限制器将不会约束该对象的使用量
+        return BYPASS_ENTITY   # 返回 BYPASS_ENTITY 限制器将不会约束该对象的使用量
     return event.get_user_id()
 
 # 异步样例。获取不同用户的最大使用量

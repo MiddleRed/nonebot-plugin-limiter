@@ -14,7 +14,7 @@ from nonebot.typing import _DependentCallable
 from nonebot_plugin_alconna import UniMessage
 from tzlocal import get_localzone
 
-from .entity import CooldownEntity
+from .entity import BYPASS_ENTITY, CooldownEntity
 
 _tz = get_localzone()
 
@@ -123,7 +123,7 @@ def Cooldown(
         entity_id: str = Depends(entity_id_dep),
         limit: int = Depends(limit_dep),
     ) -> None:
-        if entity_id == "__bypass":
+        if entity_id == BYPASS_ENTITY:
             return
 
         now = datetime.now(tz=_tz)
@@ -233,7 +233,7 @@ def SlidingWindowCooldown(
         entity_id: str = Depends(entity_id_dep),
         limit: int = Depends(limit_dep),
     ) -> None:
-        if entity_id == "__bypass":
+        if entity_id == BYPASS_ENTITY:
             return
 
         now = datetime.now(tz=_tz)

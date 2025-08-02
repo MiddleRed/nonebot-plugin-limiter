@@ -20,6 +20,7 @@ __plugin_meta__ = PluginMetadata(
 
 from .cooldown import Cooldown as Cooldown
 from .cooldown import SlidingWindowCooldown as SlidingWindowCooldown
+from .entity import BYPASS_ENTITY as BYPASS_ENTITY
 from .entity import CooldownEntity as CooldownEntity
 from .entity import GlobalScope as GlobalScope
 from .entity import PrivateScope as PrivateScope
