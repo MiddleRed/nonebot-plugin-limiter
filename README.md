@@ -121,8 +121,19 @@ async def _():
     await test.finish("pass")
 ```
 
+串联多个限制器。
+```python
+cmd = on_startswith("cmd")
+@cmd.handle(parameterless=[
+    Cooldown(UserScope(), 2, limit = 2, reject = "UserScope reject"),
+    Cooldown(GlobalScope(), 3600, limit = 4, reject = "GlobalScope reject")
+])
+async def _(): ...
+```
+
 多命令共享使用统计集合。  
-注：请确保使用相同使用统计集合的限制器限流参数一致（限制对象，限制时间，最大使用量），否则可能会有预期之外的行为。
+> [!IMPORTANT]
+> 请确保使用相同使用统计集合的限制器限流参数一致（限制对象，限制时间，最大使用量），否则可能会有预期之外的行为。
 ```python
 # 注意，不同限流算法下的使用统计集合无法共享
 cmd1 = on_startswith("cmd1")
@@ -154,7 +165,7 @@ async def _(increaser: Increaser):
         await cmd.finish("Run successed")
 ```
 
-使用固定窗口策略实现每日签到
+使用固定窗口策略实现每日签到。
 ```python
 dailysign = on_startswith("签到")
 @dailysign.handle(parameterless = [

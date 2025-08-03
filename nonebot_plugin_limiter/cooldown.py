@@ -1,6 +1,8 @@
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import partial
 from typing import cast
 
 from apscheduler.triggers.base import BaseTrigger
@@ -32,6 +34,11 @@ def _limit_dep_wrapper(limit: int | _DependentCallable[int]) -> _DependentCallab
     else:
         limit_dep = limit
     return limit_dep
+
+def inject_increaser(state: T_State, func: Callable):
+    executors = state.setdefault("plugin_limiter:increaser", [])
+    assert isinstance(executors, list)
+    executors.append(func)
 
 # region: FixWindow
 @dataclass
@@ -139,21 +146,27 @@ def Cooldown(
             bucket[entity_id] = FixWindowUsage(now, limit)
         usage = bucket[entity_id]
 
-        if usage.available > 0:
+        def _increase_action(reset: bool = True):
+            if reset:
+                usage.start_time = now
+                usage.available = limit
             usage.available -= 1
+
+        if usage.available > 0:
+            if set_increaser:
+                inject_increaser(state, partial(_increase_action, False))
+            else:
+                _increase_action(False)
             return
 
         # Calculate reset time based on when the limitation was set
         reset_time = trigger.get_next_fire_time(usage.start_time, now)
         assert reset_time is not None, "reset_time should not be None"
 
-        def _increase_action():
-            usage.start_time = now
-            usage.available = limit - 1
-
+        # Reset
         if now >= reset_time:
             if set_increaser:
-                state["plugin_limiter:increaser"] = _increase_action
+                inject_increaser(state, _increase_action)
             else:
                 _increase_action()
             return  # Didn't exceed
@@ -273,7 +286,7 @@ def SlidingWindowCooldown(
 
         if len(usage.timestamps) < limit:
             if set_increaser:
-                state["plugin_limiter:increaser"] = _increase_action
+                inject_increaser(state, _increase_action)
             else:
                 _increase_action()
             return  # Didn't exceed
