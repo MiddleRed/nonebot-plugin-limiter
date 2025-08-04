@@ -1,24 +1,28 @@
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import partial
-from typing import cast
+import inspect
+from typing import Any, cast
 
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot.adapters import Bot, Event, Message, MessageSegment, MessageTemplate
+from nonebot.exception import FinishedException
 from nonebot.matcher import Matcher
 from nonebot.params import Depends
 from nonebot.rule import Rule as Rule
 from nonebot.typing import T_State, _DependentCallable
+from nonebot.utils import is_coroutine_callable, run_sync
 from nonebot_plugin_alconna import UniMessage
 from tzlocal import get_localzone
 
 from .entity import BYPASS_ENTITY, CooldownEntity
 
 _tz = get_localzone()
+SupportMsgType = str | Message | MessageSegment | MessageTemplate | UniMessage
 
 
 def _entity_id_dep_wrapper(entity: CooldownEntity | _DependentCallable[str]) -> _DependentCallable[str]:
@@ -34,6 +38,32 @@ def _limit_dep_wrapper(limit: int | _DependentCallable[int]) -> _DependentCallab
     else:
         limit_dep = limit
     return limit_dep
+
+def _reject_dep_wrapper(reject: None | SupportMsgType | _DependentCallable[Any]) -> _DependentCallable[Any]:
+    if isinstance(reject, SupportMsgType):
+        async def _send_msg(bot: Bot, matcher: Matcher, event: Event):
+            if isinstance(reject, UniMessage):
+                await reject.finish(event, bot)
+            else:
+                await matcher.finish(reject)
+        reject_func = _send_msg
+    elif reject is not None:    # callable
+        if not is_coroutine_callable(reject):
+            reject = run_sync(reject)
+        reject_func = reject
+    else:
+        async def _null():
+            return None
+        reject_func = _null
+
+    async def _inject_wrapper(*args, **kwargs):
+        sig = inspect.signature(reject_func)
+        bound = sig.bind(*args, **kwargs)
+        return partial(reject_func, **bound.arguments)
+
+    setattr(_inject_wrapper, "__signature__", inspect.signature(reject_func))
+    #_inject_wrapper.__signature__ = inspect.signature(reject_func)
+    return _inject_wrapper
 
 def inject_increaser(state: T_State, func: Callable):
     executors = state.setdefault("plugin_limiter:increaser", [])
@@ -55,7 +85,7 @@ def Cooldown(
     period: int | timedelta | str,
     *,
     limit: int | _DependentCallable[int] = 5,
-    reject: None | str | Message | MessageSegment | MessageTemplate | UniMessage = None,
+    reject: None | SupportMsgType | _DependentCallable[Any] = None,
     set_increaser: bool = False,
     name: None | str = None,
 ):
@@ -79,9 +109,10 @@ def Cooldown(
             可选，设置在每个周期内允许的最大触发次数。默认为 5。
             - 可传入返回值为 `int` 的函数，自定义最大触发次数，支持依赖注入。
 
-        reject (None | str | Message | MessageSegment | MessageTemplate | UniMessage):
+        reject (None | SupportMsgType | _DependentCallable):
             可选，当超出限制时的响应行为。默认为 `None`。
             - 若为 `str` 或消息对象，将作为限制使用时的提示消息发送给用户。
+            - 若为依赖注入函数，将会在拒绝时进行调用。
 
         set_increaser (bool):
             可选，是否获取限制器的增加器。默认为 False。
@@ -109,9 +140,6 @@ def Cooldown(
     ```
     """
 
-    entity_id_dep = _entity_id_dep_wrapper(entity)
-    limit_dep = _limit_dep_wrapper(limit)
-
     if isinstance(period, str):
         trigger = CronTrigger.from_crontab(period)
     else:
@@ -134,8 +162,9 @@ def Cooldown(
         matcher: Matcher,
         event: Event,
         state: T_State,
-        entity_id: str = Depends(entity_id_dep),
-        limit: int = Depends(limit_dep),
+        entity_id: str = Depends(_entity_id_dep_wrapper(entity)),
+        limit: int = Depends(_limit_dep_wrapper(limit)),
+        reject_cb: Callable[..., Awaitable[Any]] = Depends(_reject_dep_wrapper(reject))
     ) -> None:
         if entity_id == BYPASS_ENTITY:
             return
@@ -171,11 +200,9 @@ def Cooldown(
                 _increase_action()
             return  # Didn't exceed
 
-        # Exceed
-        if isinstance(reject, UniMessage):
-            await reject.finish(event, bot)
-        else:
-            await matcher.finish(reject)
+        # Exceeded
+        await reject_cb()
+        raise FinishedException()
 
     return Depends(_limiter_dependency)
 
@@ -195,7 +222,7 @@ def SlidingWindowCooldown(
     period: int | timedelta,
     *,
     limit: int | _DependentCallable[int] = 5,
-    reject: None | str | Message | MessageSegment | MessageTemplate | UniMessage = None,
+    reject: None | SupportMsgType | _DependentCallable[Any] = None,
     set_increaser: bool = False,
     name: None | str = None,
 ):
@@ -217,9 +244,10 @@ def SlidingWindowCooldown(
             可选，设置在每个滑动窗口周期内允许的最大触发次数。默认为 5。
             - 可传入返回值为 `int` 的函数，自定义最大触发次数，支持依赖注入。
 
-        reject (None | str | Message | MessageSegment | MessageTemplate | UniMessage):
+        reject (None | SupportMsgType):
             可选，当超出限制时的响应行为。默认为 `None`。
             - 若为 `str` 或消息对象，将作为限制使用时的提示消息发送给用户。
+            - 若为依赖注入函数，将会在拒绝时进行调用。
 
         set_increaser (bool):
             可选，是否获取限制器的增加器。默认为 False。
@@ -247,9 +275,6 @@ def SlidingWindowCooldown(
     ```
     """
 
-    entity_id_dep = _entity_id_dep_wrapper(entity)
-    limit_dep = _limit_dep_wrapper(limit)
-
     if isinstance(period, timedelta):
         window_length = int(period.total_seconds())
     else:
@@ -265,8 +290,9 @@ def SlidingWindowCooldown(
         matcher: Matcher,
         event: Event,
         state: T_State,
-        entity_id: str = Depends(entity_id_dep),
-        limit: int = Depends(limit_dep),
+        entity_id: str = Depends(_entity_id_dep_wrapper(entity)),
+        limit: int = Depends(_limit_dep_wrapper(limit)),
+        reject_cb: Callable[..., Awaitable[Any]] = Depends(_reject_dep_wrapper(reject))
     ) -> None:
         if entity_id == BYPASS_ENTITY:
             return
@@ -292,10 +318,8 @@ def SlidingWindowCooldown(
             return  # Didn't exceed
 
         # Exceeded
-        if isinstance(reject, UniMessage):
-            await reject.finish(event, bot)
-        else:
-            await matcher.finish(reject)
+        await reject_cb()
+        raise FinishedException()
 
     return Depends(_limiter_dependency)
 

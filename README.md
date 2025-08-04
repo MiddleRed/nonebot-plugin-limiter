@@ -76,8 +76,9 @@ COOLDOWN_SAVE_INTERVAL = 60 # 开启持久化后保存时间，单位为秒
 基本使用方式
 ```python
 from nonebot import require
-from nonebot_plugin_uninfo import Uninfo
 from nonebot.permission import SUPERUSER
+
+from nonebot_plugin_uninfo import Uninfo
 
 require("nonebot_plugin_limiter")
 from nonebot_plugin_limiter import UserScope, Cooldown
@@ -138,13 +139,13 @@ async def _(): ...
 # 注意，不同限流算法下的使用统计集合无法共享
 cmd1 = on_startswith("cmd1")
 @cmd1.handle(parameterless=[
-    Cooldown(UserScope(), 100, limit = 2, reject="reject1", name="share_set")
+    Cooldown(UserScope(), 100, limit = 2, reject="reject1", name="shared_set")
 ])
 async def _(): ...
 
 cmd2 = on_startswith("cmd2")
 @cmd2.handle(parameterless=[
-    Cooldown(UserScope(), 100, limit = 2, reject="reject2", name="share_set")
+    Cooldown(UserScope(), 100, limit = 2, reject="reject2", name="shared_set")
 ])
 async def _(): ...
 ```
@@ -163,6 +164,24 @@ async def _(increaser: Increaser):
     else:
         increaser.execute() # 这会给该实体添加一条使用记录
         await cmd.finish("Run successed")
+```
+
+丰富的 `reject` 选择
+```python
+from nonebot.matcher import Matcher
+from nonebot_plugin_alconna import UniMessage
+
+async def reject_callback(bot: Bot, matcher: Matcher):
+    await matcher.finish("Quota exceeded.")
+
+cmd = on_startswith("cmd")
+@cmd.handle(parameterless=[
+    Cooldown(UserScope(), 10, reject="Quota exceeded"),
+    Cooldown(UserScope(), 20, reject=MessageSegment.text("Quota exceeded.")),
+    Cooldown(UserScope(), 30, reject=UniMessage.text("Quota exceeded.")),
+    Cooldown(UserScope(), 40, reject=reject_callback)   # 试验性支持
+])
+async def _(): ...
 ```
 
 使用固定窗口策略实现每日签到。
@@ -186,7 +205,8 @@ async def _():
 - [x] 滑动窗口
 - [ ] 漏桶
 - [ ] 令牌桶
-- [ ] reject 依赖注入
+- [x] reject 依赖注入回调函数（试验性支持）
+- [ ] 重置用量
 - [x] 本地持久化状态
 
 ## 鸣谢
