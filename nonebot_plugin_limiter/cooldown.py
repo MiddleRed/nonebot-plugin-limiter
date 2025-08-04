@@ -324,7 +324,7 @@ def SlidingWindowCooldown(
 class LeakyBucketUsage:
     last_update_time: datetime
     capacity: int
-    available: int
+    used: int
 
 
 _LeakyBucketCooldownDict: dict[str, dict[str, LeakyBucketUsage]] = {}
@@ -417,13 +417,132 @@ def LeakyBucketCooldown(
 
         # Update bucket available capacity
         leaked_size = int((now - usage.last_update_time).total_seconds()) * leak_speed
-        usage.available = max(leaked_size + usage.available, usage.capacity)
+        usage.used = max(usage.used - leaked_size, 0)
         usage.last_update_time = now
 
         def _increase_action():
-            usage.available -= pour_size
+            usage.used += pour_size
 
-        if usage.available >= pour_size:
+        if usage.used < pour_size:
+            if set_increaser:
+                inject_increaser(state, _increase_action)
+            else:
+                _increase_action()
+            return  # Didn't exceed
+
+        # Exceeded
+        await reject_cb()
+        raise FinishedException()
+
+    return Depends(_limiter_dependency)
+
+# endregion
+
+# region: TokenBucket
+@dataclass
+class TokenBucketUsage:
+    last_update_time: datetime
+    capacity: int
+    available: int
+
+
+_TokenBucketCooldownDict: dict[str, dict[str, TokenBucketUsage]] = {}
+
+
+def TokenBucketCooldown(
+    entity: CooldownEntity | _DependentCallable[str],
+    capacity: int,
+    add_speed: int,
+    *,
+    consume_size: int | _DependentCallable[int] = 10,
+    reject: None | SupportMsgType | _DependentCallable[Any] = None,
+    set_increaser: bool = False,
+    name: None | str = None,
+):
+    """
+    **令牌桶算法限制器**
+
+    用于控制给定资源内能处理的最大请求量。
+
+    参数:
+        entity (CooldownEntity | _DependentCallable[str]):
+            设置需要进行速率限制的对象。
+            - 可传入 `CooldownEntity` 对象，如 `UserScope`, `GroupScope` 等。
+            - 可传入返回值为 `str` 的函数，自定义限制对象的**唯一 ID**，支持依赖注入。
+
+        capacity (int):
+            设置令牌桶的最大容量。
+
+        add_speed (int):
+            设置令牌桶每秒添加 token 的数量。
+
+        consume_size (int, _DependentCallable[int]):
+            可选，设置每次添加任务时需要消耗的 token 数量。默认为 10。
+            - 可传入返回值为 `int` 的函数，自定义消耗数量，支持依赖注入。
+
+        reject (None | SupportMsgType | _DependentCallable):
+            可选，当超出限制时的响应行为。默认为 `None`。
+            - 若为 `str` 或消息对象，将作为限制使用时的提示消息发送给用户。
+            - 若为依赖注入函数，将会在拒绝时进行调用。
+
+        set_increaser (bool):
+            可选，是否获取限制器的增加器。默认为 False。
+            - 当启用该选项时，限制器默认的自增将会关闭，需要在事件处理时依赖获取 Increaser 并手动操作增加。
+
+        name (None | str):
+            可选，设置当前限制器的使用统计集合。默认为 `None` ，即私有集合。
+            - 当传入 `str` ，将创建或加入一个同名公共集合，可用于与其他命令的限制器共享使用统计。
+
+    示例:
+    ```python
+    from nonebot.permission import SUPERUSER
+    from nonebot_plugin_limiter.entity import UserScope
+
+    # 收到一个请求，处理消化这个请求需要 10 个 token ，最多同时处理两个请求
+    @matcher.handle(parameterless=[
+        TokenBucketCooldown(
+            UserScope(permission=SUPERUSER),
+            20,
+            1,
+            consume_size = 10,
+            reject="操作过于频繁，请稍后再试。"
+        )
+    ])
+    async def handler(...): ...
+    ```
+    """
+
+    if isinstance(name, str):
+        if name not in _TokenBucketCooldownDict.keys():
+            _TokenBucketCooldownDict[name] = {}
+        bucket = _TokenBucketCooldownDict[name]
+    else:
+        bucket: dict[str, TokenBucketUsage] = {}
+
+    async def _limiter_dependency(
+        state: T_State,
+        entity_id: str = Depends(_entity_id_dep_wrapper(entity)),
+        consume_size: int = Depends(_limit_dep_wrapper(consume_size)),
+        reject_cb: Callable[..., Awaitable[Any]] = Depends(_reject_dep_wrapper(reject))
+    ) -> None:
+        if entity_id == BYPASS_ENTITY:
+            return
+
+        now = datetime.now(tz=_tz)
+
+        if entity_id not in bucket:
+            bucket[entity_id] = TokenBucketUsage(now, capacity, 0)
+        usage = bucket[entity_id]
+
+        # Update bucket token count
+        resume_size = int((now - usage.last_update_time).total_seconds()) * add_speed
+        usage.available = min(resume_size + usage.available, usage.capacity)
+        usage.last_update_time = now
+
+        def _increase_action():
+            usage.available -= consume_size
+
+        if usage.available >= consume_size:
             if set_increaser:
                 inject_increaser(state, _increase_action)
             else:

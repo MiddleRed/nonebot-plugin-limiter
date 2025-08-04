@@ -15,9 +15,11 @@ from .cooldown import (
     FixWindowUsage,
     LeakyBucketUsage,
     SlidingWindowUsage,
+    TokenBucketUsage,
     _FixWindowCooldownDict,
     _LeakyBucketCooldownDict,
     _SlidingWindowCooldownDict,
+    _TokenBucketCooldownDict,
     _tz,
 )
 
@@ -40,9 +42,16 @@ class PersistData(BaseModel):
     class LeakyBucketSet(BaseModel):
         last_update_time: int
         capacity: int
-        available: int
+        used: int
 
     leaky_bucket: dict[str, dict[str, LeakyBucketSet]] | None = None
+
+    class TokenBucketSet(BaseModel):
+        last_update_time: int
+        capacity: int
+        available: int
+
+    token_bucket: dict[str, dict[str, TokenBucketSet]] | None = None
 
 def load_usage_data() -> None:
     """加载本地存储的用量数据"""
@@ -85,6 +94,18 @@ def load_usage_data() -> None:
                 bucket[_id] = LeakyBucketUsage(
                     last_update_time = datetime.fromtimestamp(usage.last_update_time, tz=_tz),
                     capacity=usage.capacity,
+                    used=usage.used
+                )
+
+    if data.token_bucket is not None:
+        for name, usage_set in data.token_bucket.items():
+            if name not in _TokenBucketCooldownDict:
+                _TokenBucketCooldownDict[name] = {}
+            bucket = _TokenBucketCooldownDict[name]
+            for _id, usage in usage_set.items():
+                bucket[_id] = TokenBucketUsage(
+                    last_update_time = datetime.fromtimestamp(usage.last_update_time, tz=_tz),
+                    capacity=usage.capacity,
                     available=usage.available
                 )
 
@@ -115,6 +136,16 @@ def save_usage_data() -> None:
 
     for name, usage_set in _LeakyBucketCooldownDict.items():
         j["leaky_bucket"][name] = {
+            _id: {
+                "last_update_time": int(usage.last_update_time.timestamp()),
+                "capacity": usage.capacity,
+                "used": usage.used
+            }
+            for _id, usage in usage_set.items()
+        }
+
+    for name, usage_set in _TokenBucketCooldownDict.items():
+        j["token_bucket"][name] = {
             _id: {
                 "last_update_time": int(usage.last_update_time.timestamp()),
                 "capacity": usage.capacity,
