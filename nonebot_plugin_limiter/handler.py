@@ -14,7 +14,6 @@ class _FuncWrapper:
             func()
 
 def get_increaser(state: T_State):
-    print(state)
     ret = state.get("plugin_limiter:increaser")
     if ret is None:
         raise KeyError("Cannot get increaser, make sure you have enabled `set_increaser` in cooldown policy.")
