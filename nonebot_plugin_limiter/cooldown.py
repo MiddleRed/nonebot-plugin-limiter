@@ -423,7 +423,7 @@ def LeakyBucketCooldown(
         def _increase_action():
             usage.used += pour_size
 
-        if usage.used < pour_size:
+        if usage.used + pour_size <= usage.capacity:
             if set_increaser:
                 inject_increaser(state, _increase_action)
             else:
