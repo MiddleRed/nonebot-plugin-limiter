@@ -11,7 +11,15 @@ import nonebot_plugin_localstore as store
 from pydantic import BaseModel, ValidationError
 
 from .config import plugin_config
-from .cooldown import FixWindowUsage, SlidingWindowUsage, _FixWindowCooldownDict, _SlidingWindowCooldownDict, _tz
+from .cooldown import (
+    FixWindowUsage,
+    LeakyBucketUsage,
+    SlidingWindowUsage,
+    _FixWindowCooldownDict,
+    _LeakyBucketCooldownDict,
+    _SlidingWindowCooldownDict,
+    _tz,
+)
 
 driver = get_driver()
 plugin_data_file: Path = store.get_plugin_data_file("limiter_data.json")
@@ -29,6 +37,12 @@ class PersistData(BaseModel):
 
     sliding_window: dict[str, dict[str, SlidingWindowSet]] | None = None
 
+    class LeakyBucketSet(BaseModel):
+        last_update_time: int
+        capacity: int
+        available: int
+
+    leaky_bucket: dict[str, dict[str, LeakyBucketSet]] | None = None
 
 def load_usage_data() -> None:
     """加载本地存储的用量数据"""
@@ -62,6 +76,18 @@ def load_usage_data() -> None:
                     timestamps=deque(datetime.fromtimestamp(t, tz=_tz) for t in usage.timestamps)
                 )
 
+    if data.leaky_bucket is not None:
+        for name, usage_set in data.leaky_bucket.items():
+            if name not in _LeakyBucketCooldownDict:
+                _LeakyBucketCooldownDict[name] = {}
+            bucket = _LeakyBucketCooldownDict[name]
+            for _id, usage in usage_set.items():
+                bucket[_id] = LeakyBucketUsage(
+                    last_update_time = datetime.fromtimestamp(usage.last_update_time, tz=_tz),
+                    capacity=usage.capacity,
+                    available=usage.available
+                )
+
     logger.info("Loaded previous usage data.")
 
 
@@ -83,6 +109,16 @@ def save_usage_data() -> None:
         j["sliding_window"][name] = {
             _id: {
                 "timestamps": [int(t.timestamp()) for t in usage.timestamps],
+            }
+            for _id, usage in usage_set.items()
+        }
+
+    for name, usage_set in _LeakyBucketCooldownDict.items():
+        j["leaky_bucket"][name] = {
+            _id: {
+                "last_update_time": int(usage.last_update_time.timestamp()),
+                "capacity": usage.capacity,
+                "available": usage.available
             }
             for _id, usage in usage_set.items()
         }
